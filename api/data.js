@@ -36,17 +36,18 @@ export default async function handler(req, res) {
 
     if (req.method === "GET") {
       const data = await collection.find().toArray();
-      return res.status(200).json({ success: true, data });
+
+      // Send the data directly without the "success" and "data" wrapper
+      return res.status(200).json(data);
     }
 
     if (req.method === "POST") {
       const body =
         typeof req.body === "string" ? JSON.parse(req.body) : req.body;
       const result = await collection.insertOne(body);
-      return res.status(201).json({
-        success: true,
-        insertedId: result.insertedId,
-      });
+
+      // Return just the inserted object
+      return res.status(201).json(result.ops[0]);
     }
 
     // Handle unsupported HTTP methods
@@ -54,6 +55,6 @@ export default async function handler(req, res) {
     res.status(405).end(`Method ${req.method} Not Allowed`);
   } catch (error) {
     console.error("API Error:", error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ error: error.message });
   }
 }
