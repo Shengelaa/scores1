@@ -42,10 +42,11 @@ export default async function handler(req, res) {
         .limit(3) // Limit to top 3 players
         .toArray();
 
-      // Transform data to only include 'name' and '_id', use name as _id
+      // Transform data to only include 'name' and 'score', use name as _id
       const transformedData = data.map((entry) => ({
         _id: entry.name, // Use name as _id
         name: entry.name, // Include the name
+        score: entry.score, // Include the score
       }));
 
       // Return the transformed data directly (no success: true wrapper)
@@ -56,6 +57,11 @@ export default async function handler(req, res) {
     if (req.method === "POST") {
       const body =
         typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+
+      // Check if name and score are provided in the request body
+      if (!body.name || body.score === undefined) {
+        return res.status(400).json({ error: "Name and score are required" });
+      }
 
       // Insert the new score into the collection
       const result = await collection.insertOne(body);
@@ -72,10 +78,10 @@ export default async function handler(req, res) {
         _id: { $nin: top3.map((entry) => entry._id) }, // Delete all except the top 3
       });
 
-      // Transform top 3 players to only include 'name' and '_id', use name as _id
+      // Transform top 3 players to only include 'name', 'score', and '_id' (using name as _id)
       const transformedTop3 = top3.map((entry) => ({
         _id: entry.name, // Use name as _id
-        name: entry.name, // Include the name
+        score: entry.score, // Include the score
       }));
 
       // Return the transformed top 3 players directly (no success wrapper)
