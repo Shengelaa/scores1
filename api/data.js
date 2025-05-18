@@ -1,3 +1,22 @@
+import { MongoClient } from "mongodb";
+
+// Make sure the MongoDB URI is set in environment variables
+if (!process.env.MONGODB_URI) {
+  throw new Error("MONGODB_URI is not defined in environment variables");
+}
+
+const uri = process.env.MONGODB_URI;
+const options = {};
+
+let client;
+let clientPromise;
+
+if (!global._mongoClientPromise) {
+  client = new MongoClient(uri, options);
+  global._mongoClientPromise = client.connect();
+}
+clientPromise = global._mongoClientPromise;
+
 export default async function handler(req, res) {
   try {
     const client = await clientPromise;
