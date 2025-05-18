@@ -35,15 +35,33 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "GET") {
-      const data = await collection.find().toArray();
+      // Aggregate the scores for each player
+      const data = await collection
+        .aggregate([
+          {
+            $group: {
+              _id: "$name", // Group by player name
+              totalScore: { $sum: "$score" }, // Sum the scores for each player
+            },
+          },
+          {
+            $sort: { totalScore: -1 }, // Sort by totalScore in descending order
+          },
+          {
+            $limit: 3, // Limit the result to the top 3 players
+          },
+        ])
+        .toArray();
 
-      // Send the data directly without the "success" and "data" wrapper
+      // Send the top 3 players with the most total scores
       return res.status(200).json(data);
     }
 
     if (req.method === "POST") {
       const body =
         typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+
+      // Insert the new score entry for the player
       const result = await collection.insertOne(body);
 
       // Return just the inserted object
