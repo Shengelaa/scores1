@@ -1,22 +1,3 @@
-import { MongoClient } from "mongodb";
-
-// Make sure the MongoDB URI is set in environment variables
-if (!process.env.MONGODB_URI) {
-  throw new Error("MONGODB_URI is not defined in environment variables");
-}
-
-const uri = process.env.MONGODB_URI;
-const options = {};
-
-let client;
-let clientPromise;
-
-if (!global._mongoClientPromise) {
-  client = new MongoClient(uri, options);
-  global._mongoClientPromise = client.connect();
-}
-clientPromise = global._mongoClientPromise;
-
 export default async function handler(req, res) {
   try {
     const client = await clientPromise;
@@ -42,7 +23,14 @@ export default async function handler(req, res) {
         .limit(3) // Limit to top 3 players
         .toArray();
 
-      return res.status(200).json({ success: true, data });
+      // Transform data to only include 'name' and '_id', use name as _id
+      const transformedData = data.map((entry) => ({
+        _id: entry.name, // Use name as _id
+        name: entry.name, // Include the name
+      }));
+
+      // Return the transformed data directly (no success: true wrapper)
+      return res.status(200).json(transformedData);
     }
 
     // Handle POST requests to add a new score
@@ -65,10 +53,14 @@ export default async function handler(req, res) {
         _id: { $nin: top3.map((entry) => entry._id) }, // Delete all except the top 3
       });
 
-      return res.status(201).json({
-        success: true,
-        insertedId: result.insertedId,
-      });
+      // Transform top 3 players to only include 'name' and '_id', use name as _id
+      const transformedTop3 = top3.map((entry) => ({
+        _id: entry.name, // Use name as _id
+        name: entry.name, // Include the name
+      }));
+
+      // Return the transformed top 3 players directly (no success wrapper)
+      return res.status(201).json(transformedTop3);
     }
 
     // Handle unsupported HTTP methods
@@ -76,6 +68,6 @@ export default async function handler(req, res) {
     res.status(405).end(`Method ${req.method} Not Allowed`);
   } catch (error) {
     console.error("API Error:", error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ error: error.message }); // No 'success: false' wrapper
   }
 }
