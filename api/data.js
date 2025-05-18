@@ -45,7 +45,6 @@ export default async function handler(req, res) {
       // Transform data to only include 'name' and 'score', use name as _id
       const transformedData = data.map((entry) => ({
         _id: entry.name, // Use name as _id
-        name: entry.name, // Include the name
         score: entry.score, // Include the score
       }));
 
