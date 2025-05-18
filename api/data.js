@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     const collection = db.collection("entries");
 
     // Set CORS headers to allow requests from your frontend
-    res.setHeader("Access-Control-Allow-Origin", "*"); // You may specify only your frontend URL here
+    res.setHeader("Access-Control-Allow-Origin", "*");  // You may specify only your frontend URL here
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
@@ -36,22 +36,20 @@ export default async function handler(req, res) {
 
     if (req.method === "GET") {
       // Aggregate the scores for each player
-      const data = await collection
-        .aggregate([
-          {
-            $group: {
-              _id: "$name", // Group by player name
-              totalScore: { $sum: "$score" }, // Sum the scores for each player
-            },
+      const data = await collection.aggregate([
+        {
+          $group: {
+            _id: "$name", // Group by player name
+            totalScore: { $sum: "$score" }, // Sum the scores for each player
           },
-          {
-            $sort: { totalScore: -1 }, // Sort by totalScore in descending order
-          },
-          {
-            $limit: 3, // Limit the result to the top 3 players
-          },
-        ])
-        .toArray();
+        },
+        {
+          $sort: { totalScore: -1 }, // Sort by totalScore in descending order
+        },
+        {
+          $limit: 3, // Limit the result to the top 3 players
+        },
+      ]).toArray();
 
       // Send the top 3 players with the most total scores
       return res.status(200).json(data);
@@ -63,7 +61,7 @@ export default async function handler(req, res) {
 
       // Insert the new score entry for the player
       const result = await collection.insertOne(body);
-
+      
       // Return just the inserted object
       return res.status(201).json(result.ops[0]);
     }
