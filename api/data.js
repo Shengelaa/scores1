@@ -20,20 +20,20 @@ clientPromise = global._mongoClientPromise;
 export default async function handler(req, res) {
   try {
     const client = await clientPromise;
-    const db = client.db("mydb"); // Change this if your DB is named differently
+    const db = client.db("mydb");
     const collection = db.collection("entries");
 
-    // Set CORS headers to allow requests from your frontend
+
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-    // Allow pre-flight OPTIONS requests
+
     if (req.method === "OPTIONS") {
       return res.status(200).end();
     }
 
-    // Handle GET requests to fetch the top 3 players
+ 
     if (req.method === "GET") {
       // Fetch top 3 players sorted by score in descending order
       const data = await collection
