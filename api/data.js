@@ -56,36 +56,52 @@ export default async function handler(req, res) {
       const name = body.name;
       const score = body.score;
 
-      // Upsert the document with name as _id
-      const existing = await collection.findOne({ _id: name });
-
-      if (existing) {
-        // Only update if the new score is higher
-        if (score > existing.score) {
-          await collection.updateOne({ _id: name }, { $set: { score } });
-        }
-      } else {
-        await collection.insertOne({ _id: name, score });
-      }
-
-      // Get top 3 scores
       const top3 = await collection
         .find()
         .sort({ score: -1 })
         .limit(3)
         .toArray();
 
-      // Keep only top 3 by deleting others
-      await collection.deleteMany({
-        _id: { $nin: top3.map((entry) => entry._id) },
-      });
+      const lowestTopScore = top3[2]?.score ?? -Infinity;
 
-      return res.status(201).json(
-        top3.map((entry) => ({
-          _id: entry._id,
-          score: entry.score,
-        }))
-      );
+      // Only insert/update if the new score is high enough
+      if (
+        top3.length < 3 ||
+        score > lowestTopScore ||
+        top3.some((p) => p._id === name)
+      ) {
+        const existing = await collection.findOne({ _id: name });
+
+        if (existing) {
+          if (score > existing.score) {
+            await collection.updateOne({ _id: name }, { $set: { score } });
+          }
+        } else {
+          await collection.insertOne({ _id: name, score });
+        }
+
+        // Re-fetch top 3
+        const newTop3 = await collection
+          .find()
+          .sort({ score: -1 })
+          .limit(3)
+          .toArray();
+
+        // Delete everyone else
+        await collection.deleteMany({
+          _id: { $nin: newTop3.map((entry) => entry._id) },
+        });
+
+        return res.status(201).json(
+          newTop3.map((entry) => ({
+            _id: entry._id,
+            score: entry.score,
+          }))
+        );
+      }
+
+      // Reject low score not in top 3
+      return res.status(403).json({ error: "Score not high enough for top 3" });
     }
 
     res.setHeader("Allow", ["GET", "POST"]);
