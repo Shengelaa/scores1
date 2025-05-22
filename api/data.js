@@ -56,52 +56,51 @@ export default async function handler(req, res) {
       const name = body.name;
       const score = body.score;
 
-      const top3 = await collection
-        .find()
-        .sort({ score: -1 })
-        .limit(3)
-        .toArray();
+      const existing = await collection.findOne({ _id: name });
 
-      const lowestTopScore = top3[2]?.score ?? -Infinity;
-
-      // Only insert/update if the new score is high enough
-      if (
-        top3.length < 3 ||
-        score > lowestTopScore ||
-        top3.some((p) => p._id === name)
-      ) {
-        const existing = await collection.findOne({ _id: name });
-
-        if (existing) {
-          if (score > existing.score) {
-            await collection.updateOne({ _id: name }, { $set: { score } });
-          }
+      if (existing) {
+        // Only update if the new score is higher
+        if (score > existing.score) {
+          await collection.updateOne({ _id: name }, { $set: { score } });
         } else {
-          await collection.insertOne({ _id: name, score });
+          return res
+            .status(403)
+            .json({ error: "New score is not higher than existing" });
         }
-
-        // Re-fetch top 3
-        const newTop3 = await collection
+      } else {
+        // Check if the new score is high enough for top 3
+        const top3 = await collection
           .find()
           .sort({ score: -1 })
           .limit(3)
           .toArray();
+        const lowestTopScore = top3[2]?.score ?? -Infinity;
 
-        // Delete everyone else
-        await collection.deleteMany({
-          _id: { $nin: newTop3.map((entry) => entry._id) },
-        });
-
-        return res.status(201).json(
-          newTop3.map((entry) => ({
-            _id: entry._id,
-            score: entry.score,
-          }))
-        );
+        if (top3.length < 3 || score > lowestTopScore) {
+          await collection.insertOne({ _id: name, score });
+        } else {
+          return res
+            .status(403)
+            .json({ error: "Score not high enough for top 3" });
+        }
       }
 
-      // Reject low score not in top 3
-      return res.status(403).json({ error: "Score not high enough for top 3" });
+      // Cleanup: keep only top 3
+      const newTop3 = await collection
+        .find()
+        .sort({ score: -1 })
+        .limit(3)
+        .toArray();
+      await collection.deleteMany({
+        _id: { $nin: newTop3.map((entry) => entry._id) },
+      });
+
+      return res.status(201).json(
+        newTop3.map((entry) => ({
+          _id: entry._id,
+          score: entry.score,
+        }))
+      );
     }
 
     res.setHeader("Allow", ["GET", "POST"]);
