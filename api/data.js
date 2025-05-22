@@ -63,7 +63,7 @@ export default async function handler(req, res) {
         .toArray();
       const lowestTopScore = top3[2]?.score ?? -Infinity;
 
-      if (top3.length < 3 || score > lowestTopScore) {
+      if (top3.length < 3 || score >= lowestTopScore) {
         // Remove if name already exists (avoid dup _id errors)
         await collection.deleteOne({ _id: name });
 
