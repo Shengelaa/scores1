@@ -56,51 +56,42 @@ export default async function handler(req, res) {
       const name = body.name;
       const score = body.score;
 
-      const existing = await collection.findOne({ _id: name });
-
-      if (existing) {
-        // Only update if the new score is higher
-        if (score > existing.score) {
-          await collection.updateOne({ _id: name }, { $set: { score } });
-        } else {
-          return res
-            .status(403)
-            .json({ error: "New score is not higher than existing" });
-        }
-      } else {
-        // Check if the new score is high enough for top 3
-        const top3 = await collection
-          .find()
-          .sort({ score: -1 })
-          .limit(3)
-          .toArray();
-        const lowestTopScore = top3[2]?.score ?? -Infinity;
-
-        if (top3.length < 3 || score > lowestTopScore) {
-          await collection.insertOne({ _id: name, score });
-        } else {
-          return res
-            .status(403)
-            .json({ error: "Score not high enough for top 3" });
-        }
-      }
-
-      // Cleanup: keep only top 3
-      const newTop3 = await collection
+      const top3 = await collection
         .find()
         .sort({ score: -1 })
         .limit(3)
         .toArray();
-      await collection.deleteMany({
-        _id: { $nin: newTop3.map((entry) => entry._id) },
-      });
+      const lowestTopScore = top3[2]?.score ?? -Infinity;
 
-      return res.status(201).json(
-        newTop3.map((entry) => ({
-          _id: entry._id,
-          score: entry.score,
-        }))
-      );
+      if (top3.length < 3 || score > lowestTopScore) {
+        // Remove if name already exists (avoid dup _id errors)
+        await collection.deleteOne({ _id: name });
+
+        // Insert new score
+        await collection.insertOne({ _id: name, score });
+
+        // Clean up: only keep top 3
+        const newTop3 = await collection
+          .find()
+          .sort({ score: -1 })
+          .limit(3)
+          .toArray();
+        await collection.deleteMany({
+          _id: { $nin: newTop3.map((entry) => entry._id) },
+        });
+
+        return res.status(201).json(
+          newTop3.map((entry) => ({
+            _id: entry._id,
+            score: entry.score,
+          }))
+        );
+      } else {
+        // Score not high enough to make top 3
+        return res
+          .status(403)
+          .json({ error: "Score not high enough for top 3" });
+      }
     }
 
     res.setHeader("Allow", ["GET", "POST"]);
