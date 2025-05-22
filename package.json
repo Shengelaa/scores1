@@ -1,23 +1,17 @@
 {
   "name": "scores1",
   "version": "1.0.0",
+  "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Shengelaa/scores1.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/Shengelaa/scores1/issues"
-  },
-  "homepage": "https://github.com/Shengelaa/scores1#readme",
-  "description": "",
   "dependencies": {
-    "mongodb": "^6.16.0"
+    "mongodb": "^6.16.0",
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest"
   }
 }
